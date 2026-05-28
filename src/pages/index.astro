@@ -2,8 +2,6 @@
 import '../styles/global.css';
 // Component Imports
 //import Button from '../components/Button.astro';
-// React imports
-import {Button} from '@/components/ui/button';
 
 // Full Astro Component Syntax:
 // https://docs.astro.build/basics/astro-components/
@@ -19,10 +17,8 @@ import {Button} from '@/components/ui/button';
 	</head>
 
 	<body>
-		<div class="grid place-items-center h-screen content-center">
-			<Button>Tailwind Button in Astro!</Button>
-			<Button client:load>Button</Button>
-			<a href="/markdown-page" class="p-4 underline">Markdown is also supported...</a>
+		<div class="min-h-screen p-4 bg-gray-50">
+			<ProcessSchedulingSimulation({ onEngineReady, onStateChange }: ProcessSchedulingSimulationProps = {}) client:load/>
 		</div>
 	</body>
 </html>
