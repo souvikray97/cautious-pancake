@@ -1,8 +1,8 @@
 ---
-import '../styles/global.css';
+import '../styles/globals.css';
 // Component Imports
 //import Button from '../components/Button.astro';
-
+import OSVirtualLab from "../app/page";
 // Full Astro Component Syntax:
 // https://docs.astro.build/basics/astro-components/
 ---
@@ -18,7 +18,8 @@ import '../styles/global.css';
 
 	<body>
 		<div class="min-h-screen p-4 bg-gray-50">
-			<ProcessSchedulingSimulation({ onEngineReady, onStateChange }: ProcessSchedulingSimulationProps = {}) client:load/>
+
+			<OSVirtualLab client:load/>
 		</div>
 	</body>
 </html>
