@@ -50,7 +50,7 @@ export class SimulationEngine {
   private state: SimulationState
   private maxProcesses = 5
   private processCreations = 0
-  private processStateTimers: Map<number, { runningStartTime?: number; ioStartTime?: number }> = new Map()
+  private runningStartTimes: Map<number, number> = new Map()
   private lastCreateRequestTime = 0
 
   constructor() {
@@ -108,7 +108,7 @@ export class SimulationEngine {
     }
     this.processCreations = 0
     this.lastCreateRequestTime = 0
-    this.processStateTimers.clear()
+    this.runningStartTimes.clear()
     this.initializeProcesses()
     this.addLogEntry("Simulation reset", "info")
   }
@@ -214,12 +214,12 @@ export class SimulationEngine {
         response = this.moveToIO(processId)
         break
       case "terminated":
-        // Ready -> Terminated (process finishes execution)
-        if (currentState !== "ready") {
+        // CPU -> Terminated (process completes execution)
+        if (currentState !== "running") {
           this.state.metrics.invalidAttempts++
           return {
             success: false,
-            message: `Invalid transition: ${process.name} is in ${currentState} state. Only Ready -> Terminated is valid. Termination is only allowed from the Ready state.`,
+            message: `Invalid transition: ${process.name} is in ${currentState} state. Only CPU → Terminated is valid. Termination can only happen while the process is executing on the CPU.`,
           }
         }
         response = this.terminateProcess(processId)
@@ -254,11 +254,7 @@ export class SimulationEngine {
     process.history.push("running")
     this.state.currentProcess = processId
 
-    if (!this.processStateTimers.has(processId)) {
-      this.processStateTimers.set(processId, {})
-    }
-    const timer = this.processStateTimers.get(processId)!
-    timer.runningStartTime = this.state.currentTime
+    this.runningStartTimes.set(processId, this.state.currentTime)
 
     return { success: true, message: `Process ${process.name} is now running on CPU` }
   }
@@ -324,9 +320,6 @@ export class SimulationEngine {
       this.state.currentProcess = null
     }
 
-    const timer = this.processStateTimers.get(processId)!
-    timer.ioStartTime = this.state.currentTime
-
     return {
       success: true,
       message: `Process ${process.name} moved to I/O (waiting for I/O completion)`,
@@ -336,8 +329,8 @@ export class SimulationEngine {
   private terminateProcess(processId: number): SimulationResponse {
     const process = this.state.processes[processId]
 
-    if (process.state !== "ready") {
-      return { success: false, message: `Process ${process.name} can only be terminated from Ready state` }
+    if (process.state !== "running") {
+      return { success: false, message: `Process ${process.name} can only be terminated from CPU (Running) state` }
     }
 
     if (this.state.selectedEvent === null) {
@@ -360,7 +353,7 @@ export class SimulationEngine {
     event.state = "done"
     this.state.selectedEvent = null
 
-    // Process is in ready state, so it's not on CPU, but clear just in case
+    // Process was on CPU — free it
     if (this.state.currentProcess === processId) {
       this.state.currentProcess = null
     }
@@ -376,7 +369,7 @@ export class SimulationEngine {
 
     return {
       success: true,
-      message: `Process ${process.name} terminated from Ready state (execution completed)`,
+      message: `Process ${process.name} terminated from CPU (execution completed)`,
     }
   }
 
@@ -450,11 +443,11 @@ export class SimulationEngine {
     }
 
     // Generate io_needed events for running processes
-    const runningProcesses = this.state.processes.filter((p) => p.state === "running")
+    let runningProcesses = this.state.processes.filter((p) => p.state === "running")
     runningProcesses.forEach((process) => {
-      const timer = this.processStateTimers.get(process.id)
-      if (timer?.runningStartTime !== undefined) {
-        const timeRunning = this.state.currentTime - timer.runningStartTime
+      const startTime = this.runningStartTimes.get(process.id)
+      if (startTime !== undefined) {
+        const timeRunning = this.state.currentTime - startTime
 
         // Generate io_needed exactly at 2 clock advances after entering CPU
         const hasIOEvent = this.state.events.some(
@@ -473,14 +466,21 @@ export class SimulationEngine {
       }
     })
 
-    // Generate terminate events for ready processes (termination only from Ready state)
-    const readyProcesses = this.state.processes.filter((p) => p.state === "ready")
-    readyProcesses.forEach((process) => {
+    // Generate terminate event for a running process that has no pending io_needed event
+    // (terminate only from CPU — after I/O cycle or after running long enough)
+    runningProcesses = this.state.processes.filter((p) => p.state === "running")
+    runningProcesses.forEach((process) => {
       const hasTerminateEvent = this.state.events.some(
         (e) => e.processId === process.id && e.state === "active" && e.name === "terminate",
       )
-      // Generate terminate event for ready processes that have been through at least one state change
-      if (!hasTerminateEvent && process.history.length > 1) {
+      const hasIOEvent = this.state.events.some(
+        (e) => e.processId === process.id && e.state === "active" && e.name === "io_needed",
+      )
+      const startTime = this.runningStartTimes.get(process.id)
+      const timeRunning = startTime !== undefined ? this.state.currentTime - startTime : 0
+      // Eligible when: no pending io_needed, AND (process has been through I/O OR been running 4+ ticks)
+      const eligible = !hasIOEvent && (process.history.includes("blocked") || timeRunning >= 4)
+      if (!hasTerminateEvent && eligible) {
         possibleEvents.push({
           id: this.state.events.length + possibleEvents.length,
           name: "terminate",
@@ -551,7 +551,7 @@ export class SimulationEngine {
     }
     this.processCreations = 0
     this.lastCreateRequestTime = 0
-    this.processStateTimers.clear()
+    this.runningStartTimes.clear()
 
     // Create exactly the requested number of process slots
     for (let i = 0; i < Math.max(processes.length, this.maxProcesses); i++) {
@@ -587,13 +587,12 @@ export class SimulationEngine {
           proc.state = "running"
           proc.history.push("running")
           this.state.currentProcess = i
-          this.processStateTimers.set(i, { runningStartTime: 0 })
+          this.runningStartTimes.set(i, 0)
         }
         // If CPU already occupied, leave in ready
       } else if (cfg.initialState === "blocked") {
         proc.state = "blocked"
         proc.history.push("blocked")
-        this.processStateTimers.set(i, { ioStartTime: 0 })
         // Generate an io_done event so the user can move it back to ready
         this.state.events.push({
           id: this.state.events.length,
@@ -615,14 +614,14 @@ export class SimulationEngine {
         type: "internal",
         state: cfg.initialState === "running" ? "active" : "killed",
       })
-      // terminate is only valid from ready state
+      // terminate is only valid from running (CPU) state
       this.state.events.push({
         id: this.state.events.length,
         name: "terminate",
         time: 0,
         processId: i,
         type: "external",
-        state: cfg.initialState === "ready" ? "active" : "killed",
+        state: cfg.initialState === "running" ? "active" : "killed",
       })
     }
 

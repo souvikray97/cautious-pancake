@@ -286,13 +286,13 @@ export const PREDEFINED_SCENARIOS: ScenarioConfig[] = [
   {
     id: 1,
     title: "Single Process – Normal Execution",
-    description: "Move a single process through a valid life cycle: Ready, CPU, Ready, Terminated.",
+    description: "Move a single process through a valid life cycle: Ready → CPU → Terminated.",
     difficulty: "beginner",
     timeLimit: 180,
     objectives: [
       "Allocate CPU to the ready process",
-      "Preempt the process back to Ready",
-      "Terminate the process from Ready state",
+      "Wait for the terminate event to appear while the process runs on CPU",
+      "Terminate the process from CPU (Running) state",
     ],
     initialProcesses: [
       { id: 0, arrivalTime: 0, burstTime: 4 },
@@ -317,8 +317,8 @@ export const PREDEFINED_SCENARIOS: ScenarioConfig[] = [
     timeLimit: 240,
     objectives: [
       "Move the first process to CPU",
-      "Observe that the second process is blocked from CPU",
-      "Preempt or move the first process before dispatching the second",
+      "Observe that the second process is blocked from entering CPU",
+      "Free the CPU (via I/O or preemption) before dispatching the second process",
     ],
     initialProcesses: [
       { id: 0, arrivalTime: 0, burstTime: 4 },
@@ -339,14 +339,14 @@ export const PREDEFINED_SCENARIOS: ScenarioConfig[] = [
   {
     id: 3,
     title: "I/O Blocking and Return",
-    description: "Move a process through the full I/O cycle: Ready, CPU, I/O, Ready, Terminated.",
+    description: "Complete the full I/O life cycle: Ready → CPU → I/O → Ready → CPU → Terminated.",
     difficulty: "intermediate",
     timeLimit: 300,
     objectives: [
       "Allocate CPU to the process",
       "Move the process to I/O when io_needed appears",
-      "Complete I/O and return to Ready",
-      "Terminate the process from Ready state",
+      "Complete I/O and return the process to Ready",
+      "Allocate CPU again, then terminate the process from CPU",
     ],
     initialProcesses: [
       { id: 0, arrivalTime: 0, burstTime: 8 },
@@ -370,10 +370,10 @@ export const PREDEFINED_SCENARIOS: ScenarioConfig[] = [
     difficulty: "beginner",
     timeLimit: 240,
     objectives: [
-      "Attempt to move a Ready process directly to I/O",
-      "Attempt to terminate a process from CPU (invalid)",
+      "Attempt to move a Ready process directly to I/O (invalid)",
+      "Attempt to terminate a process from Ready state (invalid)",
       "Observe rejection messages for each invalid attempt",
-      "Complete the process via the correct path (terminate from Ready)",
+      "Complete the process via the correct path: Ready → CPU → Terminated",
     ],
     initialProcesses: [
       { id: 0, arrivalTime: 0, burstTime: 6 },
@@ -399,7 +399,7 @@ export const PREDEFINED_SCENARIOS: ScenarioConfig[] = [
     objectives: [
       "Move one process to I/O while another uses CPU",
       "Demonstrate that I/O does not block other processes",
-      "Complete life cycles for all three processes",
+      "Terminate all three processes from CPU state",
     ],
     initialProcesses: [
       { id: 0, arrivalTime: 0, burstTime: 6 },
@@ -427,7 +427,7 @@ export const PREDEFINED_SCENARIOS: ScenarioConfig[] = [
     objectives: [
       "Observe that I/O completion only works for processes in I/O state",
       "Attempt to trigger events on processes in wrong states",
-      "Complete the process via the correct event sequence",
+      "Complete the process via the correct event sequence, terminating from CPU",
     ],
     initialProcesses: [
       { id: 0, arrivalTime: 0, burstTime: 6 },
@@ -453,7 +453,7 @@ export const PREDEFINED_SCENARIOS: ScenarioConfig[] = [
     objectives: [
       "Move one process to CPU while the other remains in Ready",
       "Observe that Ready means waiting for CPU allocation",
-      "Preempt the first process to Ready and terminate it, then dispatch the second",
+      "Terminate both processes from CPU state",
     ],
     initialProcesses: [
       { id: 0, arrivalTime: 0, burstTime: 4 },
@@ -474,12 +474,12 @@ export const PREDEFINED_SCENARIOS: ScenarioConfig[] = [
   {
     id: 8,
     title: "Different Lifecycle Lengths",
-    description: "Two processes with different life cycle paths: one terminates early, the other performs I/O first.",
+    description: "Two processes with different life cycle paths: one terminates from CPU early, the other performs I/O first.",
     difficulty: "intermediate",
     timeLimit: 360,
     objectives: [
-      "Terminate the first process from Ready state (after CPU execution)",
-      "Move the second process through I/O before terminating",
+      "Terminate the first process directly from CPU (short life cycle)",
+      "Move the second process through I/O before terminating from CPU",
       "Observe lifecycle variability between processes",
     ],
     initialProcesses: [
@@ -507,7 +507,7 @@ export const PREDEFINED_SCENARIOS: ScenarioConfig[] = [
     objectives: [
       "Explore all valid transitions from various starting states",
       "Handle processes already in Ready, CPU, and I/O states",
-      "Terminate all processes through valid paths",
+      "Terminate all processes from CPU state",
     ],
     initialProcesses: [
       { id: 0, arrivalTime: 0, burstTime: 6 },

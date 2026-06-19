@@ -1,10 +1,7 @@
 "use client"
 
-import { useEffect, useRef, useCallback } from "react"
-
 const STORAGE_KEY = "os-virtual-lab-state"
-const STORAGE_VERSION = 1
-const DEBOUNCE_MS = 500
+const STORAGE_VERSION = 2
 
 export interface PersistedState {
   storageVersion: number
@@ -19,23 +16,6 @@ export interface PersistedState {
     completedScenarios: string[]
   }
   savedAt: string
-}
-
-function getDefaultState(): PersistedState {
-  return {
-    storageVersion: STORAGE_VERSION,
-    currentTab: "simulation",
-    shortcutsEnabled: true,
-    evaluationResults: [],
-    tutorialProgress: {
-      currentStep: 0,
-      completedSteps: [],
-    },
-    guidedScenariosProgress: {
-      completedScenarios: [],
-    },
-    savedAt: new Date().toISOString(),
-  }
 }
 
 export function loadPersistedState(): PersistedState | null {
@@ -73,24 +53,4 @@ export function clearPersistedState() {
   } catch {
     // fail silently
   }
-}
-
-export function useDebouncedSave(getState: () => PersistedState) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const save = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
-      savePersistedState(getState())
-    }, DEBOUNCE_MS)
-  }, [getState])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [])
-
-  return save
 }

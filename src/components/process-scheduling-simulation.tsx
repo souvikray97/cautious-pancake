@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Play, Pause, RotateCcw, AlertCircle, Clock, Cpu, Activity, Info, BookOpen, History, Download } from "lucide-react"
+import { RotateCcw, AlertCircle, Clock, Cpu, Activity, Info, BookOpen, History, Download } from "lucide-react"
 import { exportActionLogCSV, exportActionLogJSON, exportStateHistoryCSV, exportStateHistoryJSON } from "@/lib/export-utils"
 import {
   DropdownMenu,
@@ -30,7 +30,6 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
   useEffect(() => {
     onEngineReady?.(engine)
   }, [engine, onEngineReady])
-  const [isRunning, setIsRunning] = useState(false)
   const [alert, setAlert] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null)
   const [selectedProcess, setSelectedProcess] = useState<number | null>(null)
 
@@ -48,23 +47,12 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
     }
   }, [])
 
-  const handleStart = () => {
-    setIsRunning(true)
-    showAlert("Simulation started - processes will advance automatically", "success", true)
-  }
-
-  const handlePause = () => {
-    setIsRunning(false)
-    showAlert("Simulation paused - use manual controls to continue", "info", true)
-  }
-
   const handleReset = () => {
-    setIsRunning(false)
     engine.reset()
     refreshState()
     setAlert(null)
     setSelectedProcess(null)
-    showAlert("Simulation reset - all processes and events cleared", "info", true)
+    showAlert("Sandbox reset - all processes and events cleared", "info", true)
   }
 
   const handleAdvanceClock = () => {
@@ -112,7 +100,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
       case "blocked":
         return "bg-yellow-500 hover:bg-yellow-600"
       case "terminated":
-        return "bg-gray-500 hover:bg-gray-600"
+        return "bg-red-500 hover:bg-red-600"
       default:
         return "bg-gray-300 hover:bg-gray-400"
     }
@@ -184,7 +172,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
                     <p>
-                      Use these controls to manage the simulation. Create processes and move them between states to learn
+                      Use these controls to manage the sandbox. Create processes and move them between states to learn
                       the process life cycle.
                     </p>
                   </TooltipContent>
@@ -193,24 +181,14 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-col gap-2">
-                {!isRunning ? (
-                  <Button
-                    onClick={handleStart}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm w-full"
-                  >
-                    <Play className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                    Start
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handlePause}
-                    variant="outline"
-                    className="flex items-center gap-2 bg-transparent text-xs sm:text-sm w-full"
-                  >
-                    <Pause className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                    Pause
-                  </Button>
-                )}
+                <Button
+                  onClick={handleAdvanceClock}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm w-full"
+                >
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="hidden sm:inline">Advance Clock</span>
+                  <span className="sm:hidden">Clock</span>
+                </Button>
                 <Button
                   onClick={handleReset}
                   variant="outline"
@@ -218,15 +196,6 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                 >
                   <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
                   Reset
-                </Button>
-                <Button
-                  onClick={handleAdvanceClock}
-                  variant="outline"
-                  className="flex items-center gap-2 bg-transparent text-xs sm:text-sm w-full"
-                >
-                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                  <span className="hidden sm:inline">Advance Clock</span>
-                  <span className="sm:hidden">Clock</span>
                 </Button>
                 <Button
                   onClick={handleCreateProcess}
@@ -323,10 +292,10 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 sm:w-3 sm:h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                    <span className="text-xs sm:text-sm">I/O (waiting for I/O)</span>
+                    <span className="text-xs sm:text-sm">I/O wait (waiting for I/O)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 sm:w-3 sm:h-3 bg-gray-500 rounded-full flex-shrink-0"></div>
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
                     <span className="text-xs sm:text-sm">Terminated</span>
                   </div>
                 </div>
@@ -342,7 +311,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                   <div>{"CPU → Ready (preemption)"}</div>
                   <div>{"CPU → I/O (I/O request)"}</div>
                   <div>{"I/O → Ready (I/O completion)"}</div>
-                  <div>{"Ready → Terminated (process completes)"}</div>
+                  <div>{"CPU → Terminated (process completes)"}</div>
                 </div>
               </div>
             </CardContent>
@@ -388,7 +357,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
                 <Cpu className="h-4 w-4 flex-shrink-0" />
-                <span className="break-words flex-1 min-w-0">Process Life Cycle Simulation</span>
+                <span className="break-words flex-1 min-w-0">Process Life Cycle Sandbox</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 cursor-help flex-shrink-0" />
@@ -452,7 +421,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
 
                 <div className="space-y-3 overflow-hidden">
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-xs sm:text-sm">Processes</h3>
+                    <h3 className="font-semibold text-xs sm:text-sm">Processes and Current State</h3>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-3 w-3 text-blue-600 cursor-help flex-shrink-0" />
@@ -466,9 +435,8 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                   </div>
 
                   <div className="border rounded-lg p-2 bg-gray-50 overflow-hidden">
-                    <h4 className="font-medium mb-2 flex items-center gap-2 text-xs sm:text-sm">
-                      <Cpu className="h-3 w-3 flex-shrink-0" />
-                      CPU (single slot)
+                    <h4 className="font-medium mb-2 text-xs sm:text-sm text-green-600">
+                      CPU (running)
                     </h4>
                     <div className="min-h-8 sm:min-h-10 border-2 border-dashed border-gray-300 rounded-lg p-1 sm:p-2 flex flex-wrap gap-1 overflow-hidden">
                       {runningProcesses.length === 0 ? (
@@ -488,7 +456,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                   </div>
 
                   <div className="border rounded-lg p-2 bg-gray-50 overflow-hidden">
-                    <h4 className="font-medium mb-2 text-xs sm:text-sm">Ready</h4>
+                    <h4 className="font-medium mb-2 text-xs sm:text-sm text-blue-600">Ready</h4>
                     <div className="min-h-8 sm:min-h-10 border-2 border-dashed border-gray-300 rounded-lg p-1 sm:p-2 flex flex-wrap gap-1 overflow-hidden">
                       {readyProcesses.length === 0 ? (
                         <div className="text-muted-foreground text-xs">No processes ready</div>
@@ -507,7 +475,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                   </div>
 
                   <div className="border rounded-lg p-2 bg-gray-50 overflow-hidden">
-                    <h4 className="font-medium mb-2 text-xs sm:text-sm">I/O</h4>
+                    <h4 className="font-medium mb-2 text-xs sm:text-sm text-yellow-600">I/O wait</h4>
                     <div className="min-h-8 sm:min-h-10 border-2 border-dashed border-gray-300 rounded-lg p-1 sm:p-2 flex flex-wrap gap-1 overflow-hidden">
                       {blockedProcesses.length === 0 ? (
                         <div className="text-muted-foreground text-xs">No processes in I/O</div>
@@ -526,7 +494,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                   </div>
 
                   <div className="border rounded-lg p-2 bg-gray-50 overflow-hidden">
-                    <h4 className="font-medium mb-2 text-xs sm:text-sm">Terminated</h4>
+                    <h4 className="font-medium mb-2 text-xs sm:text-sm text-red-600">Terminated</h4>
                     <div className="min-h-8 sm:min-h-10 border-2 border-dashed border-gray-300 rounded-lg p-1 sm:p-2 flex flex-wrap gap-1 overflow-hidden">
                       {terminatedProcesses.length === 0 ? (
                         <div className="text-muted-foreground text-xs">No terminated processes</div>
@@ -653,7 +621,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                 <div className="max-h-32 sm:max-h-48 overflow-y-auto space-y-1 action-log-container border rounded-lg p-2 bg-gray-50">
                   {simulationState.actionLog.length === 0 ? (
                     <div className="text-center text-muted-foreground py-4 text-xs sm:text-sm">
-                      No activity yet. Start the simulation to see logs.
+                      No activity yet. Start the sandbox to see logs.
                     </div>
                   ) : (
                     simulationState.actionLog
@@ -759,7 +727,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                     <div>Ready: <span className="font-mono font-semibold text-blue-600">{readyProcesses.length}</span></div>
                     <div>CPU: <span className="font-mono font-semibold text-green-600">{runningProcesses.length}</span></div>
                     <div>I/O: <span className="font-mono font-semibold text-yellow-600">{blockedProcesses.length}</span></div>
-                    <div>Terminated: <span className="font-mono font-semibold text-gray-600">{terminatedProcesses.length}</span></div>
+                    <div>Terminated: <span className="font-mono font-semibold text-red-600">{terminatedProcesses.length}</span></div>
                   </div>
                 </div>
               </div>
@@ -783,7 +751,7 @@ export function ProcessSchedulingSimulation({ onEngineReady, onStateChange }: Pr
                                   state === "ready" ? "bg-blue-500" :
                                   state === "running" ? "bg-green-500" :
                                   state === "blocked" ? "bg-yellow-500" :
-                                  state === "terminated" ? "bg-gray-500" : "bg-gray-300"
+                                  state === "terminated" ? "bg-red-500" : "bg-gray-300"
                                 }`}>
                                   {state === "ready" ? "Ready" : state === "running" ? "CPU" : state === "blocked" ? "I/O" : state === "terminated" ? "Term" : state}
                                 </span>

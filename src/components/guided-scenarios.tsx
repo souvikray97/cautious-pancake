@@ -54,37 +54,184 @@ interface GuidedStep {
 }
 
 const GUIDED_SCENARIOS: GuidedScenario[] = [
+  // ── Scenario 0: Tutorial – Introduction to Process Life Cycle ────────────────────
+  {
+    id: "s0-tutorial",
+    title: "Scenario 0: Tutorial – Introduction to Process Life Cycle",
+    description: "A step-by-step guided introduction to all process states and transitions. Start here.",
+    difficulty: "beginner",
+    estimatedTime: 10,
+    objectives: [
+      "Understand the five process states: Infant, Ready, CPU, I/O Wait, and Terminated",
+      "Create a process using a create_request event",
+      "Move a process through Ready → CPU → Ready → CPU → I/O → Ready → CPU → Terminated",
+      "Learn that processes can only be terminated from the CPU (Running) state",
+    ],
+    steps: [
+      {
+        id: "s0-intro",
+        title: "Welcome: Process States",
+        description: "Read the state descriptions before you begin",
+        instruction: "Look at the simulation panel. Processes start as Infant, become Ready when admitted, move to CPU when scheduled, may block in I/O Wait, and are terminated only from the CPU state. Click ‘Check & Complete Step’ when you are ready to continue.",
+        hint: "No action required — just read the state descriptions in the simulation panel, then click the button below.",
+        expectedAction: "read_intro",
+        validation: () => true,
+        feedback: {
+          success: "You understand the five process states. Let’s create a process.",
+          error: "Click ‘Check & Complete Step’ to continue.",
+        },
+      },
+      {
+        id: "s0-create",
+        title: "Step 1: Create a Process (Infant → Ready)",
+        description: "Admit a process into the system",
+        instruction: "Click ‘Advance Clock’ until a create_request event appears in Event Requests. Select it, then click ‘Create Process’ to admit the process into the Ready state.",
+        hint: "Look for the purple create_request event in the Event Requests panel. Select it first, then use the action button.",
+        expectedAction: "create_process",
+        validation: (state: any) => state.processes?.some((p: any) => p.state === "ready"),
+        feedback: {
+          success: "The process is now in the Ready state — it is waiting to be assigned to the CPU.",
+          error: "Select a create_request event from Event Requests, then click ‘Create Process’.",
+        },
+      },
+      {
+        id: "s0-to-cpu",
+        title: "Step 2: Allocate CPU (Ready → CPU)",
+        description: "Schedule the process for execution",
+        instruction: "Click on the process badge in the Ready queue, then click ‘→ CPU’ to dispatch it to the CPU.",
+        hint: "The process badge appears in the Ready section. Select it to see action buttons.",
+        expectedAction: "move_to_cpu",
+        validation: (state: any) => state.processes?.some((p: any) => p.state === "running"),
+        feedback: {
+          success: "The process is now on the CPU and executing. Only one process can be on the CPU at a time.",
+          error: "Select the Ready process and click ‘→ CPU’.",
+        },
+      },
+      {
+        id: "s0-preempt",
+        title: "Step 3: Preemption (CPU → Ready)",
+        description: "Move the process back to Ready to simulate preemption",
+        instruction: "Select the running process on the CPU, then click ‘→ Ready’ to preempt it back to the Ready queue. In real systems, the OS scheduler can preempt a process to share the CPU with others.",
+        hint: "Click the process badge in the CPU section to select it, then use the ‘→ Ready’ button.",
+        expectedAction: "preempt_process",
+        validation: (state: any) => state.processes?.some((p: any) => p.state === "ready" && p.history?.includes("running")),
+        feedback: {
+          success: "The process is back in Ready. It retains its context and can be dispatched to CPU again.",
+          error: "Select the running process and click ‘→ Ready’.",
+        },
+      },
+      {
+        id: "s0-to-cpu-2",
+        title: "Step 4: Allocate CPU Again (Ready → CPU)",
+        description: "Dispatch the process back to the CPU for its next burst",
+        instruction: "Select the Ready process and click ‘→ CPU’ to dispatch it again. A process can be dispatched to CPU multiple times during its life cycle.",
+        hint: "Same action as Step 2 — select the Ready process, then click ‘→ CPU’.",
+        expectedAction: "move_to_cpu",
+        validation: (state: any) => state.processes?.some((p: any) => p.state === "running"),
+        feedback: {
+          success: "Back on the CPU. Now let’s simulate an I/O request.",
+          error: "Select the Ready process and click ‘→ CPU’.",
+        },
+      },
+      {
+        id: "s0-to-io",
+        title: "Step 5: I/O Request (CPU → I/O Wait)",
+        description: "Simulate the process requesting an I/O operation",
+        instruction: "Advance the clock until an io_needed event appears for the running process. Select that event, then click ‘→ I/O’ to move the process to the I/O Wait state.",
+        hint: "An io_needed event appears after a few clock advances while the process is on CPU. Select the event first, then move to I/O.",
+        expectedAction: "move_to_io",
+        validation: (state: any) => state.processes?.some((p: any) => p.state === "blocked"),
+        feedback: {
+          success: "The process is now waiting for I/O. It cannot use the CPU while blocked in I/O Wait.",
+          error: "Wait for an io_needed event, select it, then click ‘→ I/O’.",
+        },
+      },
+      {
+        id: "s0-io-done",
+        title: "Step 6: I/O Completion (I/O Wait → Ready)",
+        description: "Return the process to Ready when I/O finishes",
+        instruction: "Advance the clock until an io_done event appears for the blocked process. Select it, then click ‘→ Ready’ to return the process to the Ready queue.",
+        hint: "io_done signals that the I/O operation has completed. The process can now be scheduled for CPU again.",
+        expectedAction: "move_to_ready",
+        validation: (state: any) => state.processes?.some((p: any) => p.state === "ready" && p.history?.includes("blocked")),
+        feedback: {
+          success: "The process is back in Ready after completing its I/O operation.",
+          error: "Wait for io_done event, select it, then click ‘→ Ready’.",
+        },
+      },
+      {
+        id: "s0-to-cpu-final",
+        title: "Step 7: Allocate CPU for Final Execution (Ready → CPU)",
+        description: "Schedule the process for its final CPU burst",
+        instruction: "Select the Ready process and click ‘→ CPU’ to dispatch it for its final execution. Important: a process can only be terminated from the CPU state, so it must be on the CPU before it can finish.",
+        hint: "Move the process from Ready to CPU one more time. Termination requires the process to be actively running.",
+        expectedAction: "move_to_cpu",
+        validation: (state: any) => state.processes?.some((p: any) => p.state === "running" && p.history?.includes("blocked")),
+        feedback: {
+          success: "The process is on the CPU for its final execution. Now wait for the terminate event.",
+          error: "Select the Ready process and click ‘→ CPU’.",
+        },
+      },
+      {
+        id: "s0-terminate",
+        title: "Step 8: Terminate (CPU → Terminated)",
+        description: "End the process from the CPU state",
+        instruction: "Advance the clock until a terminate event appears for the running process. Select it, then click ‘Terminate’. A process can only be terminated when it is actively executing on the CPU — never from Ready or I/O.",
+        hint: "The terminate event appears after the process has been on the CPU long enough. Select it first, then use the Terminate button.",
+        expectedAction: "terminate_process",
+        validation: (state: any) => state.processes?.some((p: any) => p.state === "terminated"),
+        feedback: {
+          success: "The process has been terminated from the CPU state. Full life cycle complete!",
+          error: "Wait for the terminate event while the process is on the CPU, select it, then click Terminate.",
+        },
+      },
+      {
+        id: "s0-summary",
+        title: "Tutorial Complete",
+        description: "Reflect on the key rules you have learned",
+        instruction: "Key rules: (1) Processes enter Ready after creation. (2) Only one process can occupy the CPU at a time. (3) I/O blocks only the requesting process. (4) Processes can ONLY be terminated from the CPU state. Click ‘Check & Complete Step’ to finish the tutorial.",
+        hint: "No action required — click ‘Check & Complete Step’ to finish.",
+        expectedAction: "read_summary",
+        validation: () => true,
+        feedback: {
+          success: "Tutorial complete! You are ready for the guided scenarios. Proceed to Scenario 1.",
+          error: "Click ‘Check & Complete Step’ to finish.",
+        },
+      },
+    ],
+    initialProcesses: [{ id: "P0", arrivalTime: 0, burstTime: 10 }],
+  },
+
   // ── Scenario 1: Single Process – Normal Execution ────────────────
   {
     id: "s1-single-normal",
-    title: "Scenario 1: Single Process \u2013 Normal Execution",
-    description: "Move a single process through a valid life cycle: Ready \u2192 CPU \u2192 Ready \u2192 Terminated",
+    title: "Scenario 1: Single Process – Normal Execution",
+    description: "Move a single process through its complete life cycle: Ready → CPU → Terminated",
     difficulty: "beginner",
     estimatedTime: 5,
     objectives: [
       "Allocate CPU to a ready process",
-      "Preempt the process back to Ready",
-      "Terminate the process from Ready state using a terminate event",
+      "Terminate the process from CPU state when a terminate event appears",
     ],
     steps: [
       {
         id: "s1-create",
         title: "Create the Process",
         description: "Admit the process into the system",
-        instruction: "Advance the clock until a create_request event appears, select it, then click 'Create Process'",
+        instruction: "Advance the clock until a create_request event appears, select it, then click ‘Create Process’",
         hint: "Look for the purple create_request event in Event Requests",
         expectedAction: "create_process",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "ready"),
         feedback: {
           success: "The process is now in the Ready state, waiting for CPU allocation.",
-          error: "Select a create_request event and click 'Create Process'.",
+          error: "Select a create_request event and click ‘Create Process’.",
         },
       },
       {
         id: "s1-to-cpu",
-        title: "Allocate CPU (Ready \u2192 CPU)",
+        title: "Allocate CPU (Ready → CPU)",
         description: "Dispatch the process to the CPU for execution",
-        instruction: "Select the process in Ready and click '\u2192 CPU'",
+        instruction: "Select the process in Ready and click ‘→ CPU’",
         hint: "Click on the process badge in Ready, then use the action button",
         expectedAction: "move_to_cpu",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "running"),
@@ -94,36 +241,23 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
         },
       },
       {
-        id: "s1-preempt",
-        title: "Preempt Back to Ready (CPU \u2192 Ready)",
-        description: "Move the process back to Ready so it can be terminated",
-        instruction: "Select the running process and click '\u2192 Ready' to preempt it. Termination is only allowed from the Ready state.",
-        hint: "Click on the process in CPU, then use the '\u2192 Ready' button",
-        expectedAction: "preempt_process",
-        validation: (state: any) => state.processes?.some((p: any) => p.state === "ready" && p.history?.includes("running")),
-        feedback: {
-          success: "The process is back in Ready. Now you can terminate it.",
-          error: "Select the running process and move it to Ready.",
-        },
-      },
-      {
         id: "s1-terminate",
-        title: "Terminate (Ready \u2192 Terminated)",
-        description: "End the process from Ready state using the terminate event",
-        instruction: "Advance the clock until a terminate event appears for the Ready process, select it, then terminate the process",
-        hint: "Terminate events appear for processes in the Ready state. Select the terminate event first, then use the Terminate button.",
+        title: "Terminate (CPU → Terminated)",
+        description: "End the process from the CPU state using a terminate event",
+        instruction: "Advance the clock until a terminate event appears for the running process. Select it, then click ‘Terminate’. Processes can only be terminated from the CPU state.",
+        hint: "The terminate event appears after the process has been running for a while. Select the terminate event first, then use the Terminate button.",
         expectedAction: "terminate_process",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "terminated"),
         feedback: {
-          success: "Excellent! You completed a valid life cycle: Ready \u2192 CPU \u2192 Ready \u2192 Terminated.",
-          error: "Wait for the terminate event, select it, then terminate the process from Ready.",
+          success: "Excellent! You completed a valid life cycle: Ready → CPU → Terminated.",
+          error: "Wait for the terminate event while the process is on the CPU, select it, then terminate.",
         },
       },
     ],
     initialProcesses: [{ id: "P0", arrivalTime: 0, burstTime: 4 }],
   },
 
-  // ── Scenario 2: CPU Exclusivity with Two Processes ───────────────
+  // ── Scenario 2: CPU Exclusivity with Two Processes ───────────
   {
     id: "s2-cpu-exclusivity",
     title: "Scenario 2: CPU Exclusivity with Two Processes",
@@ -153,7 +287,7 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
         id: "s2-first-cpu",
         title: "Move First Process to CPU",
         description: "Dispatch one process to CPU",
-        instruction: "Select any Ready process and click '\u2192 CPU'",
+        instruction: "Select any Ready process and click ‘→ CPU’",
         hint: "Only one process can be in CPU. Choose either one.",
         expectedAction: "move_to_cpu",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "running"),
@@ -182,18 +316,18 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
     ],
   },
 
-  // ── Scenario 3: I/O Blocking and Return ──────────────────────────
+  // ── Scenario 3: I/O Blocking and Return ──────────────────
   {
     id: "s3-io-blocking",
     title: "Scenario 3: I/O Blocking and Return",
-    description: "Complete the full I/O cycle: Ready \u2192 CPU \u2192 I/O \u2192 Ready \u2192 Terminated",
+    description: "Complete the full I/O cycle: Ready → CPU → I/O → Ready → CPU → Terminated",
     difficulty: "intermediate",
     estimatedTime: 10,
     objectives: [
       "Understand I/O as a blocking wait state",
       "Use io_needed to move a process from CPU to I/O",
       "Use io_done to return a process from I/O to Ready",
-      "Complete the full life cycle with an I/O detour",
+      "Allocate CPU again after I/O completes, then terminate from CPU",
     ],
     steps: [
       {
@@ -213,7 +347,7 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
         id: "s3-to-cpu",
         title: "Allocate CPU",
         description: "Move the process to CPU",
-        instruction: "Select the Ready process and click '\u2192 CPU'",
+        instruction: "Select the Ready process and click ‘→ CPU’",
         hint: "The process must be in CPU before it can request I/O",
         expectedAction: "move_to_cpu",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "running"),
@@ -224,10 +358,10 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
       },
       {
         id: "s3-to-io",
-        title: "I/O Request (CPU \u2192 I/O)",
+        title: "I/O Request (CPU → I/O Wait)",
         description: "When the io_needed event appears, move the process to I/O",
         instruction: "Advance the clock until an io_needed event appears, select it, then move the process to I/O",
-        hint: "io_needed appears after 2 clock advances in CPU. I/O is a blocking state \u2014 the process cannot execute while waiting for I/O.",
+        hint: "io_needed appears after 2 clock advances in CPU. I/O is a blocking state — the process cannot execute while waiting for I/O.",
         expectedAction: "move_to_io",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "blocked"),
         feedback: {
@@ -237,10 +371,10 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
       },
       {
         id: "s3-io-done",
-        title: "I/O Completion (I/O \u2192 Ready)",
+        title: "I/O Completion (I/O Wait → Ready)",
         description: "Return the process to Ready when I/O completes",
         instruction: "Advance the clock until an io_done event appears, select it, then move the process to Ready",
-        hint: "io_done signals that the I/O operation has finished. Select the event first, then use '\u2192 Ready'.",
+        hint: "io_done signals that the I/O operation has finished. Select the event first, then use ‘→ Ready’.",
         expectedAction: "move_to_ready",
         validation: (state: any) => state.processes?.some((p: any) => p.history?.includes("blocked") && p.state === "ready"),
         feedback: {
@@ -249,23 +383,36 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
         },
       },
       {
+        id: "s3-to-cpu-again",
+        title: "Allocate CPU Again (Ready → CPU)",
+        description: "Dispatch the process back to CPU for its final execution",
+        instruction: "Select the Ready process and click ‘→ CPU’. The process must be on the CPU before it can be terminated.",
+        hint: "After I/O, the process returns to Ready. Move it to CPU again for its final burst.",
+        expectedAction: "move_to_cpu",
+        validation: (state: any) => state.processes?.some((p: any) => p.state === "running" && p.history?.includes("blocked")),
+        feedback: {
+          success: "Process is back on the CPU. Now wait for the terminate event.",
+          error: "Select the Ready process and click ‘→ CPU’.",
+        },
+      },
+      {
         id: "s3-terminate",
-        title: "Terminate (Ready \u2192 Terminated)",
-        description: "Complete the life cycle by terminating from Ready state",
-        instruction: "The process is back in Ready after I/O completion. Select the terminate event for this process and terminate it. Termination is only valid from Ready state.",
-        hint: "The full path was: Ready \u2192 CPU \u2192 I/O \u2192 Ready \u2192 Terminated",
+        title: "Terminate (CPU → Terminated)",
+        description: "Complete the life cycle by terminating from CPU state",
+        instruction: "Advance the clock until a terminate event appears for the running process. Select it, then terminate the process. Termination is only valid from the CPU state.",
+        hint: "The full path was: Ready → CPU → I/O → Ready → CPU → Terminated",
         expectedAction: "terminate_process",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "terminated"),
         feedback: {
-          success: "Excellent! Full I/O life cycle completed: Ready \u2192 CPU \u2192 I/O \u2192 Ready \u2192 Terminated.",
-          error: "Select the terminate event and terminate the process from Ready state.",
+          success: "Excellent! Full I/O life cycle completed: Ready → CPU → I/O → Ready → CPU → Terminated.",
+          error: "Select the terminate event and terminate the process from CPU state.",
         },
       },
     ],
     initialProcesses: [{ id: "P0", arrivalTime: 0, burstTime: 8 }],
   },
 
-  // ── Scenario 4: Invalid Transition Exploration ───────────────────
+  // ── Scenario 4: Invalid Transition Exploration ───────────────
   {
     id: "s4-invalid-transitions",
     title: "Scenario 4: Invalid Transition Exploration",
@@ -273,11 +420,10 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
     difficulty: "beginner",
     estimatedTime: 8,
     objectives: [
-      "Attempt Ready \u2192 I/O and observe the rejection",
-      "Attempt I/O \u2192 CPU and observe the rejection",
-      "Attempt CPU \u2192 Terminated and observe the rejection",
+      "Attempt Ready → I/O and observe the rejection",
+      "Attempt Ready → Terminated and observe the rejection",
       "Understand the valid transition diagram",
-      "Complete the process via the correct path",
+      "Complete the process via the correct path (CPU → Terminated)",
     ],
     steps: [
       {
@@ -295,48 +441,48 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
       },
       {
         id: "s4-try-ready-io",
-        title: "Try Ready \u2192 I/O (Invalid)",
+        title: "Try Ready → I/O (Invalid)",
         description: "Attempt to move a Ready process directly to I/O",
         instruction: "Select the Ready process and try to move it to I/O. The system will reject this because a process must go through CPU before entering I/O.",
-        hint: "Ready \u2192 I/O is not a valid transition. A process can only enter I/O from the CPU state.",
+        hint: "Ready → I/O is not a valid transition. A process can only enter I/O from the CPU state.",
         expectedAction: "test_invalid_transition",
         validation: () => true,
         feedback: {
-          success: "You observed that Ready \u2192 I/O is invalid. A process must be executing on CPU to request I/O.",
+          success: "You observed that Ready → I/O is invalid. A process must be executing on CPU to request I/O.",
           error: "Try moving the Ready process to I/O to see the error.",
         },
       },
       {
-        id: "s4-try-cpu-term",
-        title: "Try CPU \u2192 Terminated (Invalid)",
-        description: "Attempt to terminate a process directly from CPU",
-        instruction: "Move the process to CPU, then try to terminate it. The system will reject this because termination only happens from Ready state, not CPU.",
-        hint: "CPU \u2192 Terminated is not valid. A process must be in the Ready state to be terminated.",
+        id: "s4-try-ready-term",
+        title: "Try Ready → Terminated (Invalid)",
+        description: "Attempt to terminate a process directly from Ready state",
+        instruction: "Select the Ready process and try to terminate it. The system will reject this because termination only happens from the CPU (Running) state, not from Ready.",
+        hint: "Ready → Terminated is not a valid transition. A process must be actively executing on the CPU to be terminated.",
         expectedAction: "test_invalid_transition",
         validation: () => true,
         feedback: {
-          success: "Correct! Termination only works from Ready state. You must preempt the process back to Ready first.",
-          error: "Move the process to CPU and try to terminate it to see the error.",
+          success: "You observed that Ready → Terminated is invalid. Termination only works from the CPU state.",
+          error: "Try terminating the Ready process to see the error.",
         },
       },
       {
         id: "s4-correct-path",
         title: "Complete via Correct Path",
         description: "Now complete the process using valid transitions",
-        instruction: "Preempt the process back to Ready (CPU \u2192 Ready), then select the terminate event and terminate it from Ready state.",
-        hint: "The valid path for termination requires the process to be in Ready state.",
+        instruction: "Move the process to CPU using ‘→ CPU’. Once on the CPU, advance the clock until a terminate event appears, select it, and terminate the process from CPU state.",
+        hint: "The valid path is: Ready → CPU → Terminated. Move to CPU first, then wait for the terminate event.",
         expectedAction: "terminate_process",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "terminated"),
         feedback: {
-          success: "You completed the process using valid transitions after exploring the invalid ones.",
-          error: "Preempt the process to Ready, then select terminate event and terminate from Ready.",
+          success: "You completed the process via the correct path: Ready → CPU → Terminated.",
+          error: "Move the process to CPU, wait for the terminate event, then terminate.",
         },
       },
     ],
     initialProcesses: [{ id: "P0", arrivalTime: 0, burstTime: 6 }],
   },
 
-  // ── Scenario 5: Multiple Processes with I/O Interleaving ─────────
+  // ── Scenario 5: Multiple Processes with I/O Interleaving ─────
   {
     id: "s5-io-interleaving",
     title: "Scenario 5: Multiple Processes with I/O Interleaving",
@@ -392,8 +538,8 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
         id: "s5-complete",
         title: "Complete All Life Cycles",
         description: "Terminate all three processes",
-        instruction: "Manage all processes through their life cycles and terminate each from Ready state using terminate events",
-        hint: "Return I/O processes to Ready using io_done, preempt running processes to Ready, then terminate from Ready",
+        instruction: "Manage all processes through their life cycles and terminate each from CPU state using terminate events",
+        hint: "Return I/O processes to Ready using io_done, then dispatch to CPU, then terminate from CPU when terminate events appear",
         expectedAction: "terminate_all",
         validation: (state: any) => (state.processes?.filter((p: any) => p.state === "terminated").length ?? 0) >= 3,
         feedback: {
@@ -409,7 +555,7 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
     ],
   },
 
-  // ── Scenario 6: Invalid Event Triggering ─────────────────────────
+  // ── Scenario 6: Invalid Event Triggering ─────────────────
   {
     id: "s6-invalid-events",
     title: "Scenario 6: Invalid Event Triggering",
@@ -427,7 +573,7 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
         title: "Get a Process to CPU",
         description: "Create a process and move it to CPU",
         instruction: "Create a process and move it to CPU",
-        hint: "Standard flow: create_request, then Ready \u2192 CPU",
+        hint: "Standard flow: create_request, then Ready → CPU",
         expectedAction: "move_to_cpu",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "running"),
         feedback: {
@@ -452,7 +598,7 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
         id: "s6-correct",
         title: "Use Correct Events",
         description: "Complete the process using proper event sequence",
-        instruction: "Use the correct events for each transition: io_needed when in CPU, terminate when in Ready",
+        instruction: "Use the correct events for each transition: io_needed when in CPU to request I/O, terminate when in CPU to end the process",
         hint: "Wait for the correct event to appear and select it before performing the transition",
         expectedAction: "terminate_process",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "terminated"),
@@ -465,7 +611,7 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
     initialProcesses: [{ id: "P0", arrivalTime: 0, burstTime: 6 }],
   },
 
-  // ── Scenario 7: Extended Ready State Waiting ─────────────────────
+  // ── Scenario 7: Extended Ready State Waiting ─────────────
   {
     id: "s7-ready-waiting",
     title: "Scenario 7: Extended Ready State Waiting",
@@ -473,9 +619,9 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
     difficulty: "beginner",
     estimatedTime: 8,
     objectives: [
-      "Understand that Ready means 'waiting for CPU allocation'",
+      "Understand that Ready means ‘waiting for CPU allocation’",
       "Observe a process staying in Ready while another runs",
-      "Terminate both processes sequentially",
+      "Terminate both processes from CPU state",
     ],
     steps: [
       {
@@ -495,7 +641,7 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
         id: "s7-first-runs",
         title: "Dispatch First Process",
         description: "One process runs while the other waits in Ready",
-        instruction: "Move one process to CPU. The other stays in Ready \u2014 it is waiting for CPU allocation. Ready is not idle; the process is queued.",
+        instruction: "Move one process to CPU. The other stays in Ready — it is waiting for CPU allocation. Ready is not idle; the process is queued and waiting.",
         hint: "The waiting process remains in Ready until the CPU is free and you dispatch it",
         expectedAction: "move_to_cpu",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "running") && state.processes?.some((p: any) => p.state === "ready"),
@@ -506,15 +652,15 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
       },
       {
         id: "s7-terminate-both",
-        title: "Terminate Both Processes",
-        description: "Preempt the running process and terminate both from Ready",
-        instruction: "Preempt the running process back to Ready (CPU \u2192 Ready). Then terminate both processes from Ready state using terminate events.",
-        hint: "Termination only works from Ready state. Preempt the running process first, then select terminate events.",
+        title: "Terminate Both Processes from CPU",
+        description: "Dispatch and terminate both processes from the CPU state",
+        instruction: "Wait for a terminate event for the running process, select it, and terminate it from CPU. Then dispatch the second process from Ready to CPU, wait for its terminate event, and terminate it. Both must be terminated from CPU state.",
+        hint: "Termination only works from the CPU state. Each process must be dispatched to CPU, then terminated using the terminate event.",
         expectedAction: "terminate_all",
         validation: (state: any) => (state.processes?.filter((p: any) => p.state === "terminated").length ?? 0) >= 2,
         feedback: {
-          success: "Both processes terminated from Ready state. The second had to wait in Ready until the CPU became available.",
-          error: "Preempt processes to Ready, then terminate them using terminate events.",
+          success: "Both processes terminated from CPU state. Each had to be dispatched to CPU before it could be terminated.",
+          error: "Dispatch processes to CPU and terminate them using terminate events.",
         },
       },
     ],
@@ -524,16 +670,16 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
     ],
   },
 
-  // ── Scenario 8: Different Lifecycle Lengths ──────────────────────
+  // ── Scenario 8: Different Lifecycle Lengths ────────────────
   {
     id: "s8-different-lifecycles",
     title: "Scenario 8: Different Lifecycle Lengths",
-    description: "Two processes with different life cycle paths: one terminates early, the other uses I/O first.",
+    description: "Two processes with different life cycle paths: one terminates directly from CPU, the other uses I/O first.",
     difficulty: "intermediate",
     estimatedTime: 12,
     objectives: [
-      "Terminate one process from Ready after brief CPU execution (short life cycle)",
-      "Move the other through I/O before terminating from Ready (long life cycle)",
+      "Terminate one process directly from CPU (short life cycle)",
+      "Move the other through I/O before terminating from CPU (long life cycle)",
       "Understand that processes can have varying life cycle lengths",
     ],
     steps: [
@@ -552,28 +698,28 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
       },
       {
         id: "s8-short-terminate",
-        title: "Short Life Cycle: CPU then Terminate from Ready",
-        description: "Move the process to CPU, preempt back to Ready, then terminate",
-        instruction: "Move the first process to CPU, preempt it back to Ready (CPU \u2192 Ready), then terminate it from Ready using the terminate event.",
-        hint: "Ready \u2192 CPU \u2192 Ready \u2192 Terminated is a short path",
+        title: "Short Life Cycle: Terminate from CPU",
+        description: "Move the first process to CPU and terminate it directly",
+        instruction: "Move the first process to CPU, then advance the clock until its terminate event appears. Select the terminate event and terminate the process directly from CPU state. No preemption needed.",
+        hint: "Ready → CPU → Terminated is the short path. The terminate event appears for running processes.",
         expectedAction: "terminate_process",
         validation: (state: any) => state.processes?.some((p: any) => p.state === "terminated"),
         feedback: {
-          success: "First process terminated from Ready. Now the second will take a longer path through I/O.",
-          error: "Move to CPU, preempt to Ready, then terminate from Ready.",
+          success: "First process terminated directly from CPU. Now the second will take a longer path through I/O.",
+          error: "Move to CPU, wait for the terminate event, then terminate from CPU.",
         },
       },
       {
         id: "s8-long-io",
-        title: "Long Life Cycle: I/O Detour",
+        title: "Long Life Cycle: I/O Detour then Terminate from CPU",
         description: "Move the second process through I/O before terminating",
-        instruction: "Move the second process to CPU, then to I/O, then back to Ready, and finally terminate from Ready",
-        hint: "Follow: Ready \u2192 CPU \u2192 I/O \u2192 Ready \u2192 Terminated",
+        instruction: "Move the second process to CPU, then to I/O (io_needed), then back to Ready (io_done), then to CPU again, and finally terminate from CPU using the terminate event.",
+        hint: "Follow: Ready → CPU → I/O → Ready → CPU → Terminated",
         expectedAction: "complete_io_cycle",
         validation: (state: any) => (state.processes?.filter((p: any) => p.state === "terminated").length ?? 0) >= 2,
         feedback: {
           success: "Both processes completed with different lifecycle lengths. Process life cycles vary depending on I/O needs.",
-          error: "Complete the second process through the I/O cycle, then terminate.",
+          error: "Complete the second process through the I/O cycle, then terminate from CPU.",
         },
       },
     ],
@@ -583,7 +729,7 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
     ],
   },
 
-  // ── Scenario 9: Free Exploration (Mixed Actions) ─────────────────
+  // ── Scenario 9: Free Exploration (Mixed Actions) ─────────
   {
     id: "s9-free-exploration",
     title: "Scenario 9: Free Exploration (Mixed Actions)",
@@ -599,8 +745,8 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
       {
         id: "s9-explore",
         title: "Explore Freely",
-        description: "Use the simulation to explore any transitions you like",
-        instruction: "Create processes, try all kinds of transitions \u2014 both valid and invalid. Observe how the system responds. There is minimal guidance here; rely on what you have learned.",
+        description: "Use the sandbox to explore any transitions you like",
+        instruction: "Create processes, try all kinds of transitions — both valid and invalid. Observe how the system responds. There is minimal guidance here; rely on what you have learned.",
         hint: "This is an open-ended exploration. Try anything and observe the results.",
         expectedAction: "free_exploration",
         validation: () => true,
@@ -613,13 +759,13 @@ const GUIDED_SCENARIOS: GuidedScenario[] = [
         id: "s9-complete",
         title: "Complete All Processes",
         description: "Terminate all processes you have created",
-        instruction: "Terminate at least 2 processes from Ready state to demonstrate your understanding",
-        hint: "Each process must be in Ready state to be terminated. Preempt running processes to Ready first.",
+        instruction: "Terminate at least 2 processes from CPU state to demonstrate your understanding",
+        hint: "Each process must be on the CPU to be terminated. Dispatch processes to CPU, then wait for terminate events.",
         expectedAction: "terminate_all",
         validation: (state: any) => (state.processes?.filter((p: any) => p.state === "terminated").length ?? 0) >= 2,
         feedback: {
           success: "You have demonstrated free-form mastery of process life cycle management.",
-          error: "Terminate at least 2 processes from Ready state.",
+          error: "Terminate at least 2 processes from CPU state.",
         },
       },
     ],

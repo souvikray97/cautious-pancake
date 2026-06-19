@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { ProcessSchedulingSimulation } from "@/components/process-scheduling-simulation"
-import { GuidedTutorial } from "@/components/guided-tutorial"
 import { GuidedScenarios } from "@/components/guided-scenarios"
 import { ScenarioEvaluation } from "@/components/scenario-evaluation"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -20,7 +19,7 @@ import { RotateCcw } from "lucide-react"
 
 export default function OSVirtualLab() {
   const [hydrated, setHydrated] = useState(false)
-  const [currentTab, setCurrentTab] = useState("simulation")
+  const [currentTab, setCurrentTab] = useState("sandbox")
   const [shortcutsEnabled, setShortcutsEnabled] = useState(true)
   const [evaluationResults, setEvaluationResults] = useState<any[]>([])
   const [completedScenarios, setCompletedScenarios] = useState<string[]>([])
@@ -59,7 +58,7 @@ export default function OSVirtualLab() {
   const handleResetAll = () => {
     if (window.confirm("This will clear all saved data including evaluation results, scenario progress, and preferences. Continue?")) {
       clearPersistedState()
-      setCurrentTab("simulation")
+      setCurrentTab("sandbox")
       setShortcutsEnabled(true)
       setEvaluationResults([])
       setCompletedScenarios([])
@@ -71,21 +70,13 @@ export default function OSVirtualLab() {
       {
         key: "1",
         alt: true,
-        label: "Simulation Tab",
-        description: "Switch to Simulation tab",
+        label: "Sandbox Tab",
+        description: "Switch to Sandbox tab",
         category: "Navigation",
-        action: () => setCurrentTab("simulation"),
+        action: () => setCurrentTab("sandbox"),
       },
       {
         key: "2",
-        alt: true,
-        label: "Tutorial Tab",
-        description: "Switch to Tutorial tab",
-        category: "Navigation",
-        action: () => setCurrentTab("manual"),
-      },
-      {
-        key: "3",
         alt: true,
         label: "Scenarios Tab",
         description: "Switch to Guided Scenarios tab",
@@ -93,7 +84,7 @@ export default function OSVirtualLab() {
         action: () => setCurrentTab("guided-scenarios"),
       },
       {
-        key: "4",
+        key: "3",
         alt: true,
         label: "Evaluation Tab",
         description: "Switch to Evaluation tab",
@@ -141,42 +132,23 @@ export default function OSVirtualLab() {
         {/* Main Content */}
         <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-7xl">
           <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-4 sm:mb-6 h-auto">
+            <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6 h-auto">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <TabsTrigger
-                    value="simulation"
+                    value="sandbox"
                     className={`text-xs sm:text-sm px-1 sm:px-3 py-2 break-words transition-colors ${
-                      currentTab === "simulation"
+                      currentTab === "sandbox"
                         ? "bg-white text-black border border-blue-200 shadow-sm"
                         : "hover:bg-gray-50"
                     }`}
                   >
-                    <span className="hidden sm:inline">Simulation</span>
-                    <span className="sm:hidden">Sim</span>
+                    <span className="hidden sm:inline">Sandbox</span>
+                    <span className="sm:hidden">Sand</span>
                   </TabsTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Interactive process life cycle simulation (Alt+1)</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger
-                    value="manual"
-                    className={`text-xs sm:text-sm px-1 sm:px-3 py-2 break-words transition-colors ${
-                      currentTab === "manual"
-                        ? "bg-white text-black border border-blue-200 shadow-sm"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <span className="hidden sm:inline">Tutorial</span>
-                    <span className="sm:hidden">Guide</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Comprehensive tutorial with hands-on practice (Alt+2)</p>
+                  <p>Interactive process life cycle sandbox (Alt+1)</p>
                 </TooltipContent>
               </Tooltip>
 
@@ -195,7 +167,7 @@ export default function OSVirtualLab() {
                   </TabsTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Step-by-step guided learning scenarios (Alt+3)</p>
+                  <p>Step-by-step guided learning scenarios (Alt+2)</p>
                 </TooltipContent>
               </Tooltip>
 
@@ -214,21 +186,15 @@ export default function OSVirtualLab() {
                   </TabsTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Scenario-based assessment and evaluation (Alt+4)</p>
+                  <p>Scenario-based assessment and evaluation (Alt+3)</p>
                 </TooltipContent>
               </Tooltip>
             </TabsList>
 
             <div className="overflow-hidden">
-              <TabsContent value="simulation" className="mt-0" forceMount>
-                <div className={currentTab !== "simulation" ? "hidden" : ""}>
+              <TabsContent value="sandbox" className="mt-0" forceMount>
+                <div className={currentTab !== "sandbox" ? "hidden" : ""}>
                   <ProcessSchedulingSimulation />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="manual" className="mt-0" forceMount>
-                <div className={currentTab !== "manual" ? "hidden" : ""}>
-                  <GuidedTutorial />
                 </div>
               </TabsContent>
 
